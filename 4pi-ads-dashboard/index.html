@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>4Pi Ads Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-title">
+      <h1>4Pi Ads Dashboard</h1>
+      <p>Método 4Pi (Charley Tichenor) — Spend · Frequency · CPM · Cost/Result</p>
+    </div>
+    <button id="btn-help" class="btn btn-ghost" type="button">¿Cómo se lee esto?</button>
+  </header>
+
+  <main class="layout">
+    <section class="panel config-panel">
+      <h2>Cuenta / período</h2>
+      <div class="field-row">
+        <label>
+          Nombre de cuenta
+          <input id="cfg-account" type="text" placeholder="Ej: Cliente X — Meta Ads" />
+        </label>
+        <label>
+          Período
+          <input id="cfg-period" type="text" placeholder="Ej: 1–7 sep 2026" />
+        </label>
+        <label>
+          Etiqueta del resultado
+          <input id="cfg-result-label" type="text" placeholder="Ej: Compra, Lead" value="Resultado" />
+        </label>
+      </div>
+    </section>
+
+    <section class="panel summary-panel">
+      <h2>Promedio de cuenta (este período)</h2>
+      <div id="summary-cards" class="summary-cards"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Anuncios</h2>
+        <div class="panel-actions">
+          <label class="role-filter">
+            Filtrar por rol
+            <select id="filter-role">
+              <option value="">Todos</option>
+              <option value="TOFU">Prospección</option>
+              <option value="MOFU">Medio</option>
+              <option value="BOFU">Cierre</option>
+              <option value="">Sin definir</option>
+            </select>
+          </label>
+          <label class="flag-filter">
+            <input id="filter-flags" type="checkbox" />
+            Solo red flags
+          </label>
+          <button id="btn-import-csv" class="btn btn-secondary" type="button">Importar CSV</button>
+          <input id="input-csv" type="file" accept=".csv,text/csv" hidden />
+          <button id="btn-add-ad" class="btn btn-primary" type="button">+ Agregar anuncio</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table id="ads-table">
+          <thead>
+            <tr>
+              <th>Anuncio</th>
+              <th>Rol</th>
+              <th>Spend</th>
+              <th>Frecuencia</th>
+              <th>CPM</th>
+              <th>Cost/Result</th>
+              <th>Diagnóstico 4Pi</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="ads-tbody"></tbody>
+        </table>
+        <p id="empty-state" class="empty-state">
+          Todavía no cargaste anuncios. Agregalos a mano o importá un CSV de Meta Ads Manager.
+        </p>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Datos (backup)</h2>
+      <div class="data-actions">
+        <button id="btn-export-json" class="btn btn-ghost" type="button">Exportar JSON</button>
+        <button id="btn-import-json" class="btn btn-ghost" type="button">Importar JSON</button>
+        <input id="input-json" type="file" accept="application/json" hidden />
+        <button id="btn-clear-all" class="btn btn-danger" type="button">Vaciar todo</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal: alta / edición de anuncio -->
+  <div id="modal-ad" class="modal-overlay" hidden>
+    <div class="modal">
+      <div class="modal-head">
+        <h3 id="modal-ad-title">Agregar anuncio</h3>
+        <button class="modal-close" data-close-modal="modal-ad" type="button">&times;</button>
+      </div>
+      <form id="form-ad">
+        <input type="hidden" id="ad-id" />
+        <label>
+          Nombre del anuncio
+          <input id="ad-name" type="text" required />
+        </label>
+        <label>
+          Rol en el funnel
+          <select id="ad-role">
+            <option value="">Sin definir</option>
+            <option value="TOFU">Prospección (TOFU)</option>
+            <option value="MOFU">Medio (MOFU)</option>
+            <option value="BOFU">Cierre (BOFU)</option>
+          </select>
+        </label>
+        <div class="field-row">
+          <label>
+            Spend (importe gastado)
+            <input id="ad-spend" type="number" step="0.01" min="0" required />
+          </label>
+          <label>
+            Frecuencia
+            <input id="ad-frequency" type="number" step="0.01" min="0" required />
+          </label>
+        </div>
+        <div class="field-row">
+          <label>
+            CPM
+            <input id="ad-cpm" type="number" step="0.01" min="0" required />
+          </label>
+          <label>
+            Cost/Result
+            <input id="ad-cpr" type="number" step="0.01" min="0" required />
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" data-close-modal="modal-ad">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar anuncio</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: detalle / diagnóstico de un anuncio -->
+  <div id="modal-detail" class="modal-overlay" hidden>
+    <div class="modal modal-wide">
+      <div class="modal-head">
+        <h3 id="detail-title">Anuncio</h3>
+        <button class="modal-close" data-close-modal="modal-detail" type="button">&times;</button>
+      </div>
+      <div id="detail-body" class="detail-body"></div>
+
+      <h4>Log de cambios (presupuesto / puja / audiencia)</h4>
+      <p class="hint">
+        Sirve para distinguir si la frecuencia baja es prospección sana o resets tuyos seguidos
+        (ver "Lectura de frecuencia" arriba).
+      </p>
+      <form id="form-change" class="change-form">
+        <input id="change-date" type="date" required />
+        <select id="change-type">
+          <option value="presupuesto">Presupuesto</option>
+          <option value="puja">Puja</option>
+          <option value="audiencia">Audiencia</option>
+          <option value="otro">Otro</option>
+        </select>
+        <input id="change-note" type="text" placeholder="Nota (opcional)" />
+        <button type="submit" class="btn btn-secondary">Agregar cambio</button>
+      </form>
+      <ul id="change-list" class="change-list"></ul>
+    </div>
+  </div>
+
+  <!-- Modal: guía del método -->
+  <div id="modal-help" class="modal-overlay" hidden>
+    <div class="modal modal-wide">
+      <div class="modal-head">
+        <h3>Cómo leer el 4Pi</h3>
+        <button class="modal-close" data-close-modal="modal-help" type="button">&times;</button>
+      </div>
+      <div class="help-body">
+        <p>
+          Cada anuncio tiene 4 caras: <strong>Spend, Frequency, CPM y Cost/Result</strong>. Las 4
+          se leen siempre <strong>contra el promedio de tu propia cuenta</strong> en el período
+          cargado, no contra un número fijo.
+        </p>
+        <ul>
+          <li><strong>Spend:</strong> más plata metida por Meta = señal de que el anuncio funciona.</li>
+          <li><strong>Frequency:</strong> baja = sigue encontrando audiencia nueva. Alta = se apoya
+            en audiencia ya conocida (bien si es un anuncio de cierre, mala señal si debía ser de
+            prospección).</li>
+          <li><strong>CPM:</strong> más barato = mejor experiencia/engagement. Ojo: los anuncios de
+            fondo de funnel son naturalmente más baratos porque el público ya está caliente — no
+            los compares en igualdad de condiciones contra los de prospección.</li>
+          <li><strong>Cost/Result:</strong> cierra el análisis. Un anuncio caro puede estar
+            haciendo más trabajo (conseguir gente nueva) que uno barato que solo cosecha a los
+            convencidos.</li>
+        </ul>
+        <p>Patrones que reconoce el dashboard automáticamente:</p>
+        <ul id="help-patterns"></ul>
+        <p class="hint">
+          Fuente: "The NEW BEST Way to Analyze Facebook Ads" (Professor Charley T). El video no da
+          números de corte exactos — todo esto son heurísticas de lectura, no un veredicto
+          automático. Ver README.md de esta carpeta para más detalle.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="rules.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
