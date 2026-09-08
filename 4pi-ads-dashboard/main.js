@@ -380,10 +380,28 @@
     return headers.findIndex((h) => keywords.some((k) => h.includes(k)));
   }
 
+  /**
+   * Parsea un número con formato flexible: "9083.80", "9,083.80" (miles con
+   * coma, decimal con punto — export en inglés) o "9.083,80" (miles con
+   * punto, decimal con coma — export en español/ARS). Si aparecen los dos
+   * separadores, el que queda más a la derecha es el decimal; el otro se
+   * descarta como separador de miles. Si aparece uno solo, se asume decimal.
+   */
   function parseNumberLoose(str) {
     if (str == null) return NaN;
-    const cleaned = String(str).replace(/[^0-9,.\-]/g, '').replace(/\.(?=.*\.)/g, '').replace(',', '.');
-    return parseFloat(cleaned);
+    let s = String(str).replace(/[^0-9,.\-]/g, '');
+    const lastComma = s.lastIndexOf(',');
+    const lastDot = s.lastIndexOf('.');
+    if (lastComma !== -1 && lastDot !== -1) {
+      if (lastComma > lastDot) {
+        s = s.replace(/\./g, '').replace(',', '.');
+      } else {
+        s = s.replace(/,/g, '');
+      }
+    } else if (lastComma !== -1) {
+      s = s.replace(',', '.');
+    }
+    return parseFloat(s);
   }
 
   function importCsvFile(file) {
