@@ -213,6 +213,18 @@
     document.getElementById(id).hidden = true;
   }
 
+  // Modal de confirmación propio: no usamos window.confirm() porque un
+  // iframe sandboxeado (como el visor de Artifacts) sin "allow-modals" lo
+  // bloquea devolviendo `false` sin preguntar — el botón parece no hacer
+  // nada. Este modal funciona en cualquier contexto.
+  let confirmCallback = null;
+
+  function showConfirm(message, onConfirm) {
+    confirmCallback = onConfirm;
+    document.getElementById('confirm-message').textContent = message;
+    document.getElementById('modal-confirm').hidden = false;
+  }
+
   function handleAdFormSubmit(e) {
     e.preventDefault();
     const id = document.getElementById('ad-id').value || uid();
@@ -243,10 +255,11 @@
   function deleteAd(id) {
     const ad = state.ads.find((a) => a.id === id);
     if (!ad) return;
-    if (!confirm(`¿Borrar el anuncio "${ad.name}"?`)) return;
-    state.ads = state.ads.filter((a) => a.id !== id);
-    render();
-    showToast('Anuncio borrado.');
+    showConfirm(`¿Borrar el anuncio "${ad.name}"?`, () => {
+      state.ads = state.ads.filter((a) => a.id !== id);
+      render();
+      showToast('Anuncio borrado.');
+    });
   }
 
   // ---------- Modal: detalle / diagnóstico ----------
@@ -553,10 +566,18 @@
     });
 
     document.getElementById('btn-clear-all').addEventListener('click', () => {
-      if (!confirm('Esto borra todos los anuncios y la configuración de este dashboard. ¿Seguro?')) return;
-      state = defaultState();
-      render();
-      showToast('Se vació el dashboard.');
+      showConfirm('Esto borra todos los anuncios y la configuración de este dashboard. ¿Seguro?', () => {
+        state = defaultState();
+        render();
+        showToast('Se vació el dashboard.');
+      });
+    });
+
+    document.getElementById('confirm-accept').addEventListener('click', () => {
+      const cb = confirmCallback;
+      confirmCallback = null;
+      closeModal('modal-confirm');
+      if (cb) cb();
     });
   }
 

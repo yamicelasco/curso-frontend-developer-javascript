@@ -217,6 +217,21 @@
     </div>
   </div>
 
+  <!-- Modal: confirmación genérica (borrar anuncio, vaciar todo) -->
+  <div id="modal-confirm" class="modal-overlay" hidden>
+    <div class="modal">
+      <div class="modal-head">
+        <h3 id="confirm-title">Confirmar</h3>
+        <button class="modal-close" data-close-modal="modal-confirm" type="button">&times;</button>
+      </div>
+      <p id="confirm-message"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" data-close-modal="modal-confirm">Cancelar</button>
+        <button type="button" id="confirm-accept" class="btn btn-danger">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast" class="toast" hidden></div>
 
   <script src="rules.js"></script>
